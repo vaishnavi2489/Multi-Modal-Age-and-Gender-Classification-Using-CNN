@@ -3,7 +3,7 @@
 -> A real-time face analysis system that captures a user’s face using a webcam and performs:
 1. Age estimation
 2. Gender classification
-3. Emotion detection
+3. Emotion detection.
 4. Skin type analysis
 5. Personalized healthcare and skincare recommendations
 6. Built with Python, OpenCV, DeepFace, and NumPy.
