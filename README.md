@@ -53,6 +53,7 @@ It does not include a web interface or Flask integration.
 
 ```
 - pip install opencv-python numpy deepface
+- pip install mtcnn retina-face
 - Run the script:
 - python Multi_Model_Age_Gender_Classification.py
 ```
