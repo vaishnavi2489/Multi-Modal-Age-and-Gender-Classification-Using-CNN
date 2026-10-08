@@ -78,7 +78,7 @@ def analyze_face(face):
                 "gender",
                 "emotion"
             ],
-            detector_backend="retinaface",
+            detector_backend="opencv",
             align=True,
             enforce_detection=False
         )
