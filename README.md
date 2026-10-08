@@ -1,87 +1,144 @@
-🧠 Multi-Model Age & Gender Classification with Healthcare and Behavior Predictions
+# 👤 Multi-Modal Age & Gender Classification
 
--> A real-time face analysis system that captures a user’s face using a webcam and performs:
-1. Age estimation
-2. Gender classification
-3. Emotion detection.
-4. Skin type analysis
-5. Personalized healthcare and skincare recommendations
-6. Built with Python, OpenCV, DeepFace, and NumPy.
+An AI-powered face analysis application that estimates **age, gender, emotion, and skin type** from an uploaded face image using Python, OpenCV, DeepFace, TensorFlow, and Streamlit.
 
- 🚀 Features
-- 📷 Real-Time Face Capture using webcam
-- 🧠 Age Prediction
-- 🚻 Gender Classification
-- 😊 Emotion Detection
-- 🧴 Skin Type Detection (Dry, Oily, Normal, Combination)
-- 💡 Personalized Skincare & Health Suggestions.
-  
-🧠 How It Works
-1. Face Capture 
-2. Captures webcam feed
-3. Detects largest face using OpenCV
-4. Shows live video with face bounding box
-5. Facial Analysis
-6. Uses DeepFace to predict age, gender, emotion
-7. Saves temporary image for analysis
-8. Skin Type Detection
-9. Converts face to HSV
-10. Uses brightness and saturation to classify skin type
-11. Healthcare & Behavior Recommendations
-12. Emotion-based suggestions
-13. Age-based advice
-14. Skin-type-based skincare guidance
-    
--> 📁 Project Structure
+## 🚀 Live Demo
 
---> Multi_Model_Age_Gender_Classification/
+🌐 **Live Application:**  
+https://multi-modal-age-and-gender-8qon.onrender.com
 
-├── multi_model_age&gender_classification_with_healthcare_using_CNN.py       
-└── README.md 
+> **Note:** The application is hosted on Render's free instance. The first request after inactivity may take some time to start.
 
-⚠️ Note: This project is a standalone Python script.
-It does not include a web interface or Flask integration.
+---
 
--> ⚙️ How to Run
-- Clone the repository:
-  ```
-  git clone https://github.com/vaishnavi2489/Multi-Modal-Age-and-Gender-Classification-Using-CNN.git
-  
-  cd Multi_Model_Age_Gender_Classification
-  ```
--> Install dependencies: 
+## ✨ Features
 
-```
-- pip install opencv-python numpy deepface
-- pip install mtcnn retina-face
-- Run the script:
-- python Multi_Model_Age_Gender_Classification.py
-```
-- Press Q to capture the face and generate analysis results.
+- 📷 Upload a face image
+- 🧠 Age estimation
+- 🚻 Gender classification
+- 😊 Emotion detection
+- 🧴 Skin type detection
+  - Dry
+  - Oily
+  - Normal
+  - Combination
+- 💡 Personalized skincare recommendations
+- 🖥️ Interactive Streamlit web interface
+- 🔍 OpenCV-based face detection
+- 🤖 DeepFace-based facial analysis
 
-📋 Dependencies: 
-- Python 3.x
-- OpenCV (cv2)
-- NumPy
+---
+
+## 🧠 How It Works
+
+### 1. Image Upload
+
+The user uploads a JPG, JPEG, or PNG face image through the Streamlit web interface.
+
+### 2. Face Detection and Analysis
+
+The application uses OpenCV for face detection and DeepFace for facial analysis.
+
+DeepFace provides:
+
+- Estimated age
+- Gender
+- Dominant emotion
+
+### 3. Skin Type Detection
+
+The detected face image is converted into HSV color space.
+
+The application uses:
+
+- Brightness
+- Saturation
+
+to classify the skin type as:
+
+- Dry
+- Oily
+- Normal
+- Combination
+
+### 4. Personalized Recommendations
+
+The application generates skincare recommendations based on:
+
+- Estimated age
+- Detected emotion
+- Detected skin type
+
+---
+
+## 🛠️ Technologies Used
+
+- **Python**
+- **Streamlit**
+- **OpenCV**
+- **NumPy**
+- **DeepFace**
+- **TensorFlow**
+- **Keras**
+
+---
+
+## 📁 Project Structure
+
+```text
+Multi-Modal-Age-and-Gender-Classification-Using-CNN/
+│
+├── app.py
+├── streamlit_app.py
+├── requirements.txt
+├── render.yaml
+├── .python-version
+└── README.md
+▶️ How to Run Locally
+**Clone the Repository**
+git clone https://github.com/vaishnavi2489/Multi-Modal-Age-and-Gender-Classification-Using-CNN.git
+
+**Navigate to the Project**
+cd Multi-Modal-Age-and-Gender-Classification-Using-CNN
+**
+Install Dependencies**
+pip install -r requirements.txt
+
+**Run the Application**
+python -m streamlit run streamlit_app.py
+
+**📊 Sample Output**
+Face analysis completed!
+
+Estimated Age: 30
+Gender: Man
+Emotion: happy
+Skin Type: Combination
+
+💡 Recommendations
+The application can provide recommendations such as:
+- Use a lightweight moisturizer for combination skin.
+- Use a gentle cleanser and lightweight moisturizer.
+- Apply a calming serum for redness.
+- Maintain hydration with a balanced skincare routine.
+- Use an anti-aging night cream for higher age estimates.
+⚠️ Limitations
+- Age and gender results are AI-based estimates and may not always be accurate.
+- Results can vary depending on image quality and lighting.
+- Skin type detection is based on image brightness and saturation.
+- The application is not intended for medical diagnosis.
+🛡️ Privacy & Ethical Considerations
+- Facial images are used for analysis.
+- Avoid uploading sensitive biometric information without appropriate consent.
+- AI predictions should be treated as estimates and not as definitive facts.
+**🌐 Deployment**
+The application is deployed on Render using:
+- Python 3.10.11
+- Streamlit
+- TensorFlow
 - DeepFace
- 
--> 🛡️ Security & Ethical Notes
--  Webcam access is only used during script execution
--  No facial data is stored permanently
--  Avoid using real biometric data in production without consent
- 
--> 📊 Sample Output
-- Age: 25
-- Gender: Male
-- Emotion: Happy
-- Skin Type: Normal
-
--> 💡 Recommendations:
-- Use a balanced skincare routine
-- Maintain hydration
-- Light moisturizer for skin protection
-  
--> 🎯 Applications :
-- Personalized healthcare suggestions.
-- Emotion and behavior monitoring.
-- AI-powered personal care insights. 
+- OpenCV
+**👩‍💻 Author**
+Vaishnavi
+🔗 GitHub:
+https://github.com/vaishnavi2489/Multi-Modal-Age-and-Gender-Classification-Using-CNN
