@@ -1,8 +1,12 @@
-import streamlit as st
+
+import os
+import tempfile
+
 import cv2
 import numpy as np
-import tempfile
+import streamlit as st
 from deepface import DeepFace
+
 
 # --------------------------------------------------
 # Page Configuration
@@ -17,9 +21,18 @@ st.set_page_config(
 st.title("👤 Multi-Modal Age & Gender Classification")
 
 st.write(
-    "Upload a face image to analyze estimated age, gender, "
-    "emotion, and skin type."
+    "Analyze your face using your camera or by uploading "
+    "an image to estimate age, gender, emotion, and skin type."
 )
+
+
+# --------------------------------------------------
+# Cache DeepFace Reference
+# --------------------------------------------------
+
+@st.cache_resource
+def load_deepface():
+    return DeepFace
 
 
 # --------------------------------------------------
@@ -30,18 +43,15 @@ def detect_skin_type(face):
     try:
         hsv = cv2.cvtColor(face, cv2.COLOR_BGR2HSV)
 
-        brightness = np.mean(hsv[:, :, 2])
-        saturation = np.mean(hsv[:, :, 1])
+        brightness = float(np.mean(hsv[:, :, 2]))
+        saturation = float(np.mean(hsv[:, :, 1]))
 
         if brightness < 50:
             return "Dry"
-
         elif saturation > 100:
             return "Oily"
-
         elif 50 <= brightness <= 150 and 50 <= saturation <= 100:
             return "Normal"
-
         else:
             return "Combination"
 
@@ -54,60 +64,79 @@ def detect_skin_type(face):
 # --------------------------------------------------
 
 def analyze_face(face):
+    temp_path = None
 
     try:
+        if face is None or face.size == 0:
+            st.error("No valid image was provided.")
+            return None
 
-        # Save uploaded image temporarily
+        # Resize very large images to reduce processing overhead.
+        height, width = face.shape[:2]
+        max_dimension = 1024
+
+        if max(height, width) > max_dimension:
+            scale = max_dimension / max(height, width)
+
+            face = cv2.resize(
+                face,
+                (
+                    int(width * scale),
+                    int(height * scale)
+                ),
+                interpolation=cv2.INTER_AREA
+            )
+
+        # Save image temporarily for DeepFace.
         with tempfile.NamedTemporaryFile(
             suffix=".jpg",
             delete=False
         ) as temp:
-
             temp_path = temp.name
 
-            cv2.imwrite(
-                temp_path,
-                face
-            )
-
-        # DeepFace analysis
-        analysis = DeepFace.analyze(
-            img_path=temp_path,
-            actions=[
-                "age",
-                "gender",
-                "emotion"
-            ],
-            detector_backend="opencv",
-            align=True,
-            enforce_detection=False
-        )
-
-        # DeepFace may return a list or dictionary
-        if isinstance(analysis, list) and analysis:
-
-            analysis_data = analysis[0]
-
-        elif isinstance(analysis, dict):
-
-            analysis_data = analysis
-
-        else:
-
+        if not cv2.imwrite(temp_path, face):
+            st.error("Could not prepare the image for analysis.")
             return None
 
-        # Add skin type
+        deepface = load_deepface()
+
+        # Use OpenCV detector to avoid the heavier RetinaFace detector.
+        analysis = deepface.analyze(
+            img_path=temp_path,
+            actions=["age", "gender", "emotion"],
+            detector_backend="opencv",
+            align=False,
+            enforce_detection=False,
+            silent=True
+        )
+
+        if isinstance(analysis, list) and analysis:
+            analysis_data = analysis[0]
+        elif isinstance(analysis, dict):
+            analysis_data = analysis
+        else:
+            st.error("The analysis model returned no results.")
+            return None
+
         analysis_data["skin_type"] = detect_skin_type(face)
 
         return analysis_data
 
-    except Exception as e:
-
+    except Exception:
         st.error(
-            f"Error in face analysis: {e}"
+            "Face analysis failed. Please try a clear, well-lit "
+            "image with one visible face. If the problem continues, "
+            "the hosting server may be running out of resources."
         )
 
         return None
+
+    finally:
+        if temp_path and os.path.exists(temp_path):
+            try:
+                os.remove(temp_path)
+            except OSError:
+                pass
 
 
 # --------------------------------------------------
@@ -115,235 +144,190 @@ def analyze_face(face):
 # --------------------------------------------------
 
 def suggest_skincare(analysis):
-
     suggestions = []
 
     if not analysis:
+        return ["Face analysis could not be completed."]
 
-        return [
-            "Face analysis failed."
-        ]
+    emotions = analysis.get("emotion", {})
+    age = analysis.get("age", 0)
+    skin_type = analysis.get("skin_type", "Unknown")
 
-    emotions = analysis.get(
-        "emotion",
-        {}
-    )
-
-    age = analysis.get(
-        "age",
-        0
-    )
-
-    skin_type = analysis.get(
-        "skin_type",
-        "Unknown"
-    )
-
-
-    # Emotion based
+    # Emotion-based suggestions.
     if emotions.get("sad", 0) > 30:
-
         suggestions.append(
-            "Use a hydrating moisturizer for dry skin."
+            "Consider a gentle, hydrating skincare routine."
         )
-
 
     if emotions.get("angry", 0) > 30:
-
         suggestions.append(
-            "Apply a calming serum to reduce redness."
+            "Consider gentle skincare products if your skin is irritated."
         )
 
+    # Age-based suggestions.
+    try:
+        age = float(age)
 
-    # Age based
-    if age > 40:
+        if age > 40:
+            suggestions.append(
+                "Consider a moisturizing night cream."
+            )
+        elif age < 20:
+            suggestions.append(
+                "Consider a gentle cleanser and lightweight moisturizer."
+            )
+    except (ValueError, TypeError):
+        pass
 
-        suggestions.append(
-            "Use an anti-aging night cream."
-        )
-
-    elif age < 20:
-
-        suggestions.append(
-            "Use a gentle cleanser and lightweight moisturizer."
-        )
-
-
-    # Skin type based
+    # Skin-type suggestions.
     if skin_type == "Oily":
-
         suggestions.append(
-            "Use an oil-free cleanser and lightweight moisturizer."
+            "Consider a gentle cleanser and oil-free moisturizer."
         )
-
     elif skin_type == "Dry":
-
         suggestions.append(
-            "Apply a hydrating face cream with hyaluronic acid."
+            "Consider a hydrating moisturizer."
         )
-
     elif skin_type == "Combination":
-
         suggestions.append(
-            "Use a lightweight moisturizer for balancing hydration."
+            "Consider a lightweight moisturizer."
         )
-
     elif skin_type == "Normal":
-
         suggestions.append(
-            "Maintain hydration with a balanced skincare routine."
+            "Maintain a balanced skincare routine."
         )
-
 
     if not suggestions:
-
         suggestions.append(
-            "No specific recommendations needed."
+            "Maintain a simple, balanced skincare routine."
         )
 
     return suggestions
 
 
 # --------------------------------------------------
-# Image Upload
+# Image Input: Camera or Upload
 # --------------------------------------------------
 
-uploaded_file = st.file_uploader(
-    "📷 Upload a face image",
-    type=[
-        "jpg",
-        "jpeg",
-        "png"
-    ]
+st.subheader("📸 Choose Your Image Method")
+
+input_method = st.radio(
+    "Select an option:",
+    ["📷 Use Camera", "🖼️ Upload Image"],
+    horizontal=True
 )
 
+image = None
+image_source = None
 
-# --------------------------------------------------
-# Process Image
-# --------------------------------------------------
+if input_method == "📷 Use Camera":
 
-if uploaded_file:
-
-    file_bytes = np.asarray(
-        bytearray(
-            uploaded_file.read()
-        ),
-        dtype=np.uint8
+    st.info(
+        "Allow camera access in your browser and take a picture."
     )
 
-    image = cv2.imdecode(
-        file_bytes,
-        cv2.IMREAD_COLOR
+    camera_image = st.camera_input("Take a picture")
+
+    if camera_image is not None:
+        file_bytes = np.frombuffer(
+            camera_image.getvalue(),
+            dtype=np.uint8
+        )
+
+        image = cv2.imdecode(
+            file_bytes,
+            cv2.IMREAD_COLOR
+        )
+
+        image_source = "Camera Image"
+
+else:
+
+    uploaded_file = st.file_uploader(
+        "Choose a face image",
+        type=["jpg", "jpeg", "png"]
     )
 
-
-    if image is None:
-
-        st.error(
-            "Could not read the uploaded image."
+    if uploaded_file is not None:
+        file_bytes = np.frombuffer(
+            uploaded_file.getvalue(),
+            dtype=np.uint8
         )
 
-
-    else:
-
-        # Display uploaded image
-        st.image(
-            cv2.cvtColor(
-                image,
-                cv2.COLOR_BGR2RGB
-            ),
-            caption="Uploaded Image",
-            use_container_width=True
+        image = cv2.imdecode(
+            file_bytes,
+            cv2.IMREAD_COLOR
         )
 
+        image_source = "Uploaded Image"
 
-        # Analyze button
-        if st.button(
-            "🔍 Analyze Face",
-            type="primary"
+
+# --------------------------------------------------
+# Preview and Analyze
+# --------------------------------------------------
+
+if image is not None:
+
+    st.image(
+        cv2.cvtColor(image, cv2.COLOR_BGR2RGB),
+        caption=image_source,
+        use_container_width=True
+    )
+
+    if st.button(
+        "🔍 Analyze Face",
+        type="primary"
+    ):
+
+        with st.spinner(
+            "Analyzing face. The first analysis may take longer "
+            "while the models initialize."
         ):
+            analysis = analyze_face(image)
 
-            with st.spinner(
-                "Analyzing face... This may take a little while on first run."
-            ):
+        if analysis:
 
-                analysis = analyze_face(
-                    image
+            st.success("Face analysis completed!")
+
+            st.subheader("📊 Analysis Results")
+
+            col1, col2 = st.columns(2)
+
+            with col1:
+                st.metric(
+                    "Estimated Age",
+                    str(analysis.get("age", "Unknown"))
                 )
 
-
-            # --------------------------------------------------
-            # Display Results
-            # --------------------------------------------------
-
-            if analysis:
-
-                st.success(
-                    "Face analysis completed!"
+                st.metric(
+                    "Gender",
+                    analysis.get("dominant_gender", "Unknown")
                 )
 
-
-                col1, col2 = st.columns(2)
-
-
-                with col1:
-
-                    st.metric(
-                        "Estimated Age",
-                        str(
-                            analysis.get(
-                                "age",
-                                "Unknown"
-                            )
-                        )
-                    )
-
-
-                    st.metric(
-                        "Gender",
-                        analysis.get(
-                            "dominant_gender",
-                            "Unknown"
-                        )
-                    )
-
-
-                with col2:
-
-                    st.metric(
-                        "Emotion",
-                        analysis.get(
-                            "dominant_emotion",
-                            "Unknown"
-                        )
-                    )
-
-
-                    st.metric(
-                        "Skin Type",
-                        analysis.get(
-                            "skin_type",
-                            "Unknown"
-                        )
-                    )
-
-
-                # --------------------------------------------------
-                # Skincare Recommendations
-                # --------------------------------------------------
-
-                st.subheader(
-                    "💡 Skincare Recommendations"
+            with col2:
+                st.metric(
+                    "Emotion",
+                    analysis.get("dominant_emotion", "Unknown")
                 )
 
-
-                recommendations = suggest_skincare(
-                    analysis
+                st.metric(
+                    "Skin Type",
+                    analysis.get("skin_type", "Unknown")
                 )
 
+            st.subheader("💡 Skincare Recommendations")
 
-                for suggestion in recommendations:
+            for suggestion in suggest_skincare(analysis):
+                st.write(f"✔️ {suggestion}")
 
-                    st.write(
-                        f"✔️ {suggestion}"
-                    )
+            st.caption(
+                "Age, gender, and emotion are AI-generated estimates. "
+                "Skin type detection is experimental and is not a "
+                "medical diagnosis."
+            )
+
+        else:
+            st.warning(
+                "Try another clear image. If the issue continues, "
+                "check the server logs."
+            )
